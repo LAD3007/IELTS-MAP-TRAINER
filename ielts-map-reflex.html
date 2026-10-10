@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IELTS Map Reflex Trainer</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f3ecdd; --card:#fbf7ec; --ink:#1f2a2e; --muted:#6b736f; --line:#cfc4aa;
+  --accent:#0f6e6e; --accent-ink:#ffffff; --good:#2e8b57; --bad:#c0392b;
+  --water:#bcd9df; --park:#cfe0b8; --road:#e8dcc0; --block:#e2d3b3;
+  --hover:rgba(15,110,110,.14);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14191b; --card:#1c2326; --ink:#e8e4d8; --muted:#8e9892; --line:#3a4448;
+    --accent:#4fb3b3; --accent-ink:#0b1415; --good:#5cc489; --bad:#ef7a6c;
+    --water:#24414a; --park:#2b3f2a; --road:#2b3234; --block:#303a3c;
+    --hover:rgba(79,179,179,.2);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14191b; --card:#1c2326; --ink:#e8e4d8; --muted:#8e9892; --line:#3a4448;
+  --accent:#4fb3b3; --accent-ink:#0b1415; --good:#5cc489; --bad:#ef7a6c;
+  --water:#24414a; --park:#2b3f2a; --road:#2b3234; --block:#303a3c;
+  --hover:rgba(79,179,179,.2);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:ui-serif,Georgia,"Iowan Old Style","Palatino Linotype",serif;
+  min-height:100%;
+}
+.wrap{max-width:720px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.45rem;margin:0 0 2px;letter-spacing:.2px}
+.sub{color:var(--muted);font-size:.92rem;margin:0 0 16px;font-family:ui-sans-serif,system-ui,sans-serif}
+.hud{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;
+  font-family:ui-sans-serif,system-ui,sans-serif;
+}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;text-align:center}
+.stat b{display:block;font-size:1.15rem;font-variant-numeric:tabular-nums}
+.stat span{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.prompt{
+  text-align:center;min-height:2.6rem;margin:4px 0 10px;font-size:1.25rem;
+  font-family:ui-sans-serif,system-ui,sans-serif;color:var(--muted)
+}
+.prompt strong{color:var(--ink)}
+.clock{text-align:center;font:700 3rem ui-sans-serif,system-ui,sans-serif;font-variant-numeric:tabular-nums;margin:0 0 10px;color:var(--muted);transition:color .2s}
+.clock.run{color:var(--ink)}
+.clock.warn{color:#d98a1c}
+.clock.hot{color:var(--bad);animation:pulse .5s infinite alternate}
+@keyframes pulse{from{transform:scale(1)}to{transform:scale(1.07)}}
+.mapbox{
+  position:relative;width:min(100%,62vh);aspect-ratio:1/1;margin:0 auto;
+  border:2px solid var(--ink);border-radius:6px;overflow:hidden;background:var(--card);
+  box-shadow:4px 4px 0 var(--line);
+}
+.mapbox svg.bg{position:absolute;inset:0;width:100%;height:100%}
+.grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr)}
+.cell{
+  border:1px dashed color-mix(in srgb,var(--ink) 35%,transparent);
+  background:transparent;cursor:pointer;position:relative;padding:0;
+  font:600 .8rem ui-sans-serif,system-ui,sans-serif;color:var(--ink);
+  -webkit-tap-highlight-color:transparent;
+  transition:background .08s;
+}
+.cell:hover{background:var(--hover)}
+.cell .lab{position:absolute;left:6px;top:5px;opacity:.75;letter-spacing:.05em}
+.hide-labels .cell .lab{display:none}
+.cell.correct{background:color-mix(in srgb,var(--good) 40%,transparent);outline:3px solid var(--good);outline-offset:-3px}
+.cell.wrong{background:color-mix(in srgb,var(--bad) 40%,transparent);outline:3px solid var(--bad);outline-offset:-3px}
+.north{
+  position:absolute;right:8px;top:8px;width:30px;height:38px;pointer-events:none;
+  display:flex;flex-direction:column;align-items:center;font:700 .8rem ui-sans-serif,system-ui,sans-serif;
+  background:color-mix(in srgb,var(--card) 85%,transparent);border:1px solid var(--ink);border-radius:4px;
+}
+.overlay{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;background:color-mix(in srgb,var(--bg) 88%,transparent);text-align:center;padding:16px;
+  font-family:ui-sans-serif,system-ui,sans-serif;overflow:auto;
+}
+.overlay[hidden]{display:none}
+.overlay h2{margin:0;font-size:1.2rem}
+.overlay p{margin:0;color:var(--muted);font-size:.9rem;max-width:30ch}
+button.primary,button.ghost{
+  font:600 1rem ui-sans-serif,system-ui,sans-serif;border-radius:10px;padding:11px 22px;cursor:pointer;
+}
+button.primary{background:var(--accent);color:var(--accent-ink);border:0}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button.primary:active,button.ghost:active{transform:translateY(1px)}
+.controls{
+  margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;
+  font-family:ui-sans-serif,system-ui,sans-serif;font-size:.88rem;
+}
+.controls label{display:flex;flex-direction:column;gap:5px;color:var(--muted)}
+.controls label.row{flex-direction:row;align-items:center;gap:8px;color:var(--ink)}
+.controls select,.controls input[type=range]{width:100%;font:inherit;color:var(--ink)}
+.controls select{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px}
+.actions{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.heat{display:grid;grid-template-columns:repeat(3,64px);gap:4px;margin:2px 0}
+.heat div{
+  height:46px;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:.7rem;color:#10181a;font-variant-numeric:tabular-nums;border:1px solid var(--line)
+}
+.heat div b{font-size:.85rem}
+.big{font-size:2rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink)}
+.foot{color:var(--muted);font:.78rem ui-sans-serif,system-ui,sans-serif;text-align:center;margin-top:14px;line-height:1.5}
+.err{color:var(--bad)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Map Direction Reflex</h1>
+  <p class="sub">Listen, then click the matching area as fast as you can. The timer starts when the voice stops.</p>
+
+  <div class="hud" aria-live="polite">
+    <div class="stat"><b id="sRound">0/0</b><span>Round</span></div>
+    <div class="stat"><b id="sLast">–</b><span>Last (s)</span></div>
+    <div class="stat"><b id="sAvg">–</b><span>Average</span></div>
+    <div class="stat"><b id="sMiss">0</b><span>Misses</span></div>
+  </div>
+
+  <div class="prompt" id="prompt">Press Start</div>
+  <div class="clock" id="clock" aria-hidden="true">0.00 s</div>
+
+  <div class="mapbox hide-labels" id="mapbox">
+    <svg class="bg" viewBox="0 0 300 300" preserveAspectRatio="none" aria-hidden="true">
+      <rect width="300" height="300" fill="var(--block)" opacity=".35"/>
+      <path d="M0 0H120C105 30 120 55 95 80C70 105 30 95 0 120Z" fill="var(--water)"/>
+      <rect x="196" y="12" width="92" height="70" rx="8" fill="var(--park)"/>
+      <rect x="14" y="196" width="76" height="86" rx="8" fill="var(--park)"/>
+      <rect x="0" y="143" width="300" height="14" fill="var(--road)"/>
+      <rect x="143" y="0" width="14" height="300" fill="var(--road)"/>
+      <rect x="170" y="110" width="40" height="26" fill="var(--block)"/>
+      <rect x="220" y="110" width="60" height="26" fill="var(--block)"/>
+      <rect x="170" y="170" width="46" height="40" fill="var(--block)"/>
+      <rect x="226" y="170" width="54" height="40" fill="var(--block)"/>
+      <rect x="196" y="226" width="84" height="50" fill="var(--block)"/>
+      <rect x="40" y="110" width="80" height="26" fill="var(--block)"/>
+      <rect x="110" y="196" width="22" height="80" fill="var(--block)"/>
+      <circle cx="150" cy="150" r="9" fill="var(--card)" stroke="var(--ink)" stroke-width="1.5"/>
+    </svg>
+    <div class="grid" id="grid"></div>
+    
+
+    <div class="overlay" id="startOverlay">
+      <h2>Ready?</h2>
+      <p>You will hear a direction like “north-west” or “the centre”. Click that part of the map.</p>
+      <button class="primary" id="startBtn">Start</button>
+    </div>
+
+    <div class="overlay" id="endOverlay" hidden>
+      <h2>Finished</h2>
+      <div><span class="big" id="eAvg">–</span> <span style="color:var(--muted)">s average</span></div>
+      <div id="eNote" style="color:var(--muted);font-size:.9rem"></div>
+      <div class="heat" id="heat"></div>
+      <p style="font-size:.78rem">Average per area. Slower areas are shaded warmer.</p>
+      <button class="primary" id="againBtn">Train again</button>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="ghost" id="repeatBtn" disabled>Repeat voice</button>
+    <button class="ghost" id="stopBtn" disabled>Stop</button>
+  </div>
+
+  <div class="controls">
+    <label>Voice
+      <select id="voiceSel"></select>
+    </label>
+    <label>Speed <span id="rateVal">1.0×</span>
+      <input type="range" id="rate" min="0.7" max="1.5" step="0.1" value="1">
+    </label>
+    <label>Rounds
+      <select id="rounds">
+        <option>10</option><option selected>20</option><option>30</option><option>50</option>
+      </select>
+    </label>
+    <label class="row"><input type="checkbox" id="centre" checked> Include “centre”</label>
+    <label class="row"><input type="checkbox" id="labels"> Show N/E/S/W labels</label>
+  </div>
+
+  <p class="foot">
+    Keyboard: <b>Q W E / A S D / Z X C</b> map to the 3×3 grid like a keypad (NW N NE / W centre E / SW S SE).<br>
+    Personal best average: <b id="best">–</b><br>
+    <span id="ttsWarn" class="err" hidden>Your browser doesn't support speech, so directions can't be played. Try Chrome or Edge.</span>
+  </p>
+</div>
+
+<script>
+(function(){
+  // grid order: row-major 3x3
+  var DIRS=[
+    {k:'NW',lab:'NW',say:['north west','the north west','the north west corner']},
+    {k:'N', lab:'N', say:['north','the north','the north side']},
+    {k:'NE',lab:'NE',say:['north east','the north east','the north east corner']},
+    {k:'W', lab:'W', say:['west','the west','the west side']},
+    {k:'C', lab:'',  say:['the centre','the centre of the map','the middle']},
+    {k:'E', lab:'E', say:['east','the east','the east side']},
+    {k:'SW',lab:'SW',say:['south west','the south west','the south west corner']},
+    {k:'S', lab:'S', say:['south','the south','the south side']},
+    {k:'SE',lab:'SE',say:['south east','the south east','the south east corner']}
+  ];
+  var NAMES={NW:'North-west',N:'North',NE:'North-east',W:'West',C:'Centre',E:'East',SW:'South-west',S:'South',SE:'South-east'};
+  var KEYS={q:0,w:1,e:2,a:3,s:4,d:5,z:6,x:7,c:8};
+
+  var $=function(id){return document.getElementById(id)};
+  var fmt=function(ms){return (ms/1000).toFixed(2)};
+  var grid=$('grid'), cells=[];
+  DIRS.forEach(function(d,i){
+    var b=document.createElement('button');
+    b.className='cell'; b.type='button';
+    b.setAttribute('aria-label',NAMES[d.k]);
+    b.innerHTML='<span class="lab">'+d.lab+'</span>';
+    b.addEventListener('pointerdown',function(e){e.preventDefault();pick(i)});
+    grid.appendChild(b); cells.push(b);
+  });
+
+  var state='idle'; // idle | waiting | listening | feedback
+  var target=-1,lastTarget=-1,tStart=0,round=0,total=20,results=[],timers=[],lastSay='';
+  var voices=[],synth=window.speechSynthesis||null;
+
+  function clearTimers(){timers.forEach(clearTimeout);timers=[]}
+  function later(fn,ms){var t=setTimeout(fn,ms);timers.push(t);return t}
+
+  // ---------- storage (guarded) ----------
+  function loadBest(){try{var v=localStorage.getItem('ielts-map-best');return v?+v:null}catch(e){return null}}
+  function saveBest(v){try{localStorage.setItem('ielts-map-best',String(v))}catch(e){}}
+  function showBest(){var b=loadBest();$('best').textContent=b?fmt(b)+' s':'–'}
+  showBest();
+
+  // ---------- voices ----------
+  function loadVoices(){
+    if(!synth){$('ttsWarn').hidden=false;$('voiceSel').disabled=true;return}
+    voices=synth.getVoices().filter(function(v){return /^en/i.test(v.lang)});
+    voices.sort(function(a,b){
+      var s=function(v){return (/en-GB/i.test(v.lang)?0:1)};
+      return s(a)-s(b);
+    });
+    var sel=$('voiceSel'),cur=sel.value;
+    sel.innerHTML='';
+    if(!voices.length){var o=document.createElement('option');o.textContent='Default voice';o.value='-1';sel.appendChild(o);return}
+    voices.forEach(function(v,i){
+      var o=document.createElement('option');o.value=i;o.textContent=v.name+' ('+v.lang+')';sel.appendChild(o);
+    });
+    if(cur&&sel.querySelector('option[value="'+cur+'"]'))sel.value=cur;
+  }
+  loadVoices();
+  if(synth){synth.onvoiceschanged=loadVoices;if(!window.speechSynthesis.getVoices().length){$('ttsWarn').hidden=true}}
+
+  $('rate').addEventListener('input',function(){$('rateVal').textContent=(+this.value).toFixed(1)+'×'});
+
+  function speak(text,done){
+    var finished=false;
+    function fin(){if(finished)return;finished=true;done()}
+    if(!synth){fin();return}
+    try{
+      synth.cancel();
+      var u=new SpeechSynthesisUtterance(text);
+      var vi=+$('voiceSel').value;
+      if(voices[vi])u.voice=voices[vi];
+      u.lang=(voices[vi]&&voices[vi].lang)||'en-GB';
+      u.rate=+$('rate').value;
+      u.onend=fin; u.onerror=fin;
+      synth.speak(u);
+      later(fin,Math.max(3000,text.length*160/u.rate)); // safety net
+    }catch(e){fin()}
+  }
+
+  // ---------- game ----------
+  function pool(){
+    var p=[0,1,2,3,5,6,7,8];
+    if($('centre').checked)p.push(4);
+    return p;
+  }
+  function pickTarget(){
+    var p=pool(),t;
+    do{t=p[Math.floor(Math.random()*p.length)]}while(t===lastTarget&&p.length>1);
+    return t;
+  }
+  function resetCells(){cells.forEach(function(c){c.classList.remove('correct','wrong')})}
+
+  function start(){
+    if(!synth){$('ttsWarn').hidden=false;return}
+    clearTimers();
+    total=+$('rounds').value; round=0; results=[]; lastTarget=-1;
+    $('startOverlay').hidden=true; $('endOverlay').hidden=true;
+    $('stopBtn').disabled=false;
+    $('sLast').textContent='–'; $('sAvg').textContent='–'; $('sMiss').textContent='0';
+    // unlock speech on a user gesture
+    if(synth){try{synth.cancel();var u=new SpeechSynthesisUtterance(' ');u.volume=0;synth.speak(u)}catch(e){}}
+    nextRound();
+  }
+
+  function nextRound(){
+    resetCells();
+    if(round>=total){finish();return}
+    round++;
+    updateHud();
+    state='waiting';
+    $('prompt').innerHTML='Get ready…';
+    $('clock').className='clock';$('clock').textContent='0.00 s';
+    $('repeatBtn').disabled=true;
+    target=pickTarget(); lastTarget=target;
+    var d=DIRS[target];
+    lastSay=d.say[Math.floor(Math.random()*d.say.length)];
+    later(function(){
+      $('prompt').innerHTML='Listening…';
+      speak(lastSay,function(){
+        if(state!=='waiting')return;
+        state='listening';
+        tStart=performance.now();
+        startClock();
+        $('repeatBtn').disabled=false;
+        $('prompt').innerHTML='Click now!';
+      });
+    },700+Math.random()*1100);
+  }
+
+  var raf=0;
+  function startClock(){
+    var c=$('clock');cancelAnimationFrame(raf);
+    c.className='clock run';
+    (function tick(){
+      if(state!=='listening')return;
+      var s=(performance.now()-tStart)/1000;
+      c.textContent=s.toFixed(2)+' s';
+      c.className='clock '+(s>3?'hot':s>1.5?'warn':'run');
+      raf=requestAnimationFrame(tick);
+    })();
+  }
+  function stopClock(ms){
+    cancelAnimationFrame(raf);
+    var c=$('clock');c.className='clock run';
+    c.textContent=fmt(ms)+' s';
+  }
+
+  function pick(i){
+    if(state==='idle')return;
+    if(state==='waiting'){ // jumped the gun: ignore
+      return;
+    }
+    if(state!=='listening')return;
+    var rt=Math.round(performance.now()-tStart);
+    state='feedback';
+    var ok=(i===target);
+    stopClock(rt);
+    results.push({t:target,hit:ok,ms:rt});
+    if(ok){
+      cells[i].classList.add('correct');
+      $('sLast').textContent=fmt(rt);
+      $('prompt').innerHTML='<strong style="color:var(--good)">'+fmt(rt)+' s</strong>';
+    }else{
+      cells[i].classList.add('wrong');
+      cells[target].classList.add('correct');
+      $('sLast').textContent='miss';
+      $('prompt').innerHTML='<strong style="color:var(--bad)">Missed</strong>';
+    }
+    updateHud();
+    later(nextRound,ok?650:1300);
+  }
+
+  function updateHud(){
+    $('sRound').textContent=round+'/'+total;
+    var hits=results.filter(function(r){return r.hit});
+    $('sMiss').textContent=results.length-hits.length;
+    if(hits.length){
+      $('sAvg').textContent=fmt(hits.reduce(function(a,r){return a+r.ms},0)/hits.length);
+    }
+  }
+
+  function finish(){
+    state='idle'; clearTimers();
+    $('stopBtn').disabled=true; $('repeatBtn').disabled=true;
+    var hits=results.filter(function(r){return r.hit});
+    var avg=hits.length?Math.round(hits.reduce(function(a,r){return a+r.ms},0)/hits.length):null;
+    $('eAvg').textContent=avg===null?'–':fmt(avg);
+    var misses=results.length-hits.length;
+    var note=misses+' miss'+(misses===1?'':'es')+' out of '+results.length;
+    if(avg!==null&&results.length>=10){
+      var b=loadBest();
+      if(!b||avg<b){saveBest(avg);note+=' · new personal best!';showBest()}
+    }
+    $('eNote').textContent=note;
+
+    // per-area heat map
+    var sums=DIRS.map(function(){return {s:0,n:0}});
+    hits.forEach(function(r){sums[r.t].s+=r.ms;sums[r.t].n++});
+    var avgs=sums.map(function(x){return x.n?x.s/x.n:null});
+    var vals=avgs.filter(function(v){return v!==null});
+    var lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals);
+    var heat=$('heat'); heat.innerHTML='';
+    DIRS.forEach(function(d,i){
+      var el=document.createElement('div');
+      if(avgs[i]===null){
+        el.style.background='var(--card)';el.style.color='var(--muted)';
+        el.innerHTML='<span>'+(NAMES[d.k])+'</span><b>–</b>';
+      }else{
+        var f=hi===lo?0:(avgs[i]-lo)/(hi-lo);
+        var hue=140-f*130; // green to red
+        el.style.background='hsl('+hue+',60%,72%)';
+        el.innerHTML='<span>'+d.k+'</span><b>'+fmt(avgs[i])+'</b>';
+      }
+      heat.appendChild(el);
+    });
+    $('endOverlay').hidden=false;
+    $('prompt').textContent='Done';
+  }
+
+  function stop(){
+    clearTimers(); if(synth)try{synth.cancel()}catch(e){}
+    state='idle'; resetCells();
+    $('prompt').textContent='Stopped';
+    $('stopBtn').disabled=true; $('repeatBtn').disabled=true;
+    if(results.length>=3){finish()}else{$('startOverlay').hidden=false}
+  }
+
+  $('startBtn').addEventListener('click',start);
+  $('againBtn').addEventListener('click',start);
+  $('stopBtn').addEventListener('click',stop);
+  $('repeatBtn').addEventListener('click',function(){
+    if(state!=='listening')return;
+    state='waiting';
+    speak(lastSay,function(){
+      if(state!=='waiting')return;
+      state='listening';tStart=performance.now();startClock();
+    });
+  });
+  $('labels').addEventListener('change',function(){
+    $('mapbox').classList.toggle('hide-labels',!this.checked);
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.ctrlKey||e.metaKey||e.altKey)return;
+    var k=e.key.toLowerCase();
+    if(k in KEYS){pick(KEYS[k])}
+    else if((k===' '||k==='enter')&&state==='idle'&&document.activeElement.tagName!=='BUTTON'){start()}
+  });
+})();
+</script>
+</body>
+</html>
